@@ -48,6 +48,7 @@ public class Environment : MonoBehaviour {
 
     }
 
+
     void OnDrawGizmos () {
         /* 
         if (showMapDebug) {
@@ -181,6 +182,60 @@ public class Environment : MonoBehaviour {
 
         return bestNeighbour;
     }
+
+    /// Get random neighbour tile, weighted away from those direction predator is approaching
+    public static Coord GetNextTileWeightedAway(Coord current, Coord predatorCoord, double awayProbability = 0.6, int weightingIterations = 3)
+    {
+
+        if (current == predatorCoord)
+        {
+
+            return GetNextTileRandom(current);
+        }
+
+        Coord forwardOffset = (current - predatorCoord);
+        // Random chance of returning foward tile (if walkable)
+        if (prng.NextDouble() < awayProbability)
+        {
+            Coord forwardCoord = current + forwardOffset;
+
+            if (forwardCoord.x >= 0 && forwardCoord.x < size && forwardCoord.y >= 0 && forwardCoord.y < size)
+            {
+                if (walkable[forwardCoord.x, forwardCoord.y])
+                {
+                    return forwardCoord;
+                }
+            }
+        }
+
+        // Get walkable neighbours
+        var neighbours = walkableNeighboursMap[current.x, current.y];
+        if (neighbours.Length == 0)
+        {
+            return current;
+        }
+
+        // From n random tiles, pick the one that is most aligned with the forward direction:
+        Vector2 forwardDir = new Vector2(forwardOffset.x, forwardOffset.y).normalized;
+        float bestScore = float.MinValue;
+        Coord bestNeighbour = current;
+
+        for (int i = 0; i < weightingIterations; i++)
+        {
+            Coord neighbour = neighbours[prng.Next(neighbours.Length)];
+            Vector2 offset = neighbour - current;
+            float score = Vector2.Dot(offset.normalized, forwardDir);
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestNeighbour = neighbour;
+            }
+        }
+
+        return bestNeighbour;
+    }
+
+
 
     // Call terrain generator and cache useful info
     void Init () {

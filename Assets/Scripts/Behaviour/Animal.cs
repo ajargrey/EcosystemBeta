@@ -53,6 +53,8 @@ public class Animal : LivingEntity {
     const float sqrtTwo = 1.4142f;
     const float oneOverSqrtTwo = 1 / sqrtTwo;
 
+    int eba_predatorSenseRadius = 10;
+
     public override void Init (Coord coord) {
         base.Init (coord);
         moveFromCoord = coord;
@@ -107,13 +109,30 @@ public class Animal : LivingEntity {
             FindWater ();
         }
 
+        if(eba_activePredator!=null && Coord.Distance(eba_activePredator.moveFromCoord, moveFromCoord)<eba_predatorSenseRadius){
+            currentAction = CreatureAction.Fleeing;
+        }
+
         Act ();
 
+    }
+
+    Animal eba_activePredator = null;
+    void SetPredator(Animal _predator){
+        eba_activePredator = _predator;
     }
 
     protected virtual void FindFood () {
         LivingEntity foodSource = Environment.SenseFood (coord, this, FoodPreferencePenalty);
         if (foodSource) {
+
+            if (foodSource.GetType().IsAssignableFrom(typeof(Rabbit)))
+            {
+                Animal foodSourceRabbit = (Animal)foodSource;
+                foodSourceRabbit.SetPredator(this);
+                //Debug.Log("Something is about to get eaten");
+            }
+
             currentAction = CreatureAction.GoingToFood;
             foodTarget = foodSource;
             CreatePath (foodTarget.coord);
@@ -163,6 +182,10 @@ public class Animal : LivingEntity {
                     pathIndex++;
                 }
                 break;
+            case CreatureAction.Fleeing:
+                StartMoveToCoord(Environment.GetNextTileWeightedAway(coord, eba_activePredator.coord));
+                break;
+
         }
     }
 
